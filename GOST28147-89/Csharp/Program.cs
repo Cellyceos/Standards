@@ -19,7 +19,7 @@ using System.Security.Cryptography;
  * CipherMode.OFB (Output Feedback) – метод гаммирования.
  */
 
-namespace GOST {
+namespace Standards {
     class Program {
         static int fileSize = 280;
         static string fileName = "test";
