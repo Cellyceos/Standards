@@ -11,6 +11,7 @@
 #define __Standards__ihoS57__
 
 #include <map>
+#include <cmath>
 
 #include "iso8211.h"
 
@@ -81,12 +82,12 @@ namespace Standards {
 		/**
 		* Gets width
 		*/
-		inline const double GetWidth() const noexcept { return std::abs(maxX - minX); }
+		inline const double GetWidth() const noexcept { return std::fabs(maxX - minX); }
 
 		/**
 		* Gets height
 		*/
-		inline const double GetHeight() const noexcept { return std::abs(maxY - minY); }
+		inline const double GetHeight() const noexcept { return std::fabs(maxY - minY); }
 	};
 
 	class Vector3 {
