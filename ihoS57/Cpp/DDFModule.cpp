@@ -168,7 +168,4 @@ void DDFModule::Close() noexcept {
 
 DDFModule::~DDFModule() noexcept {
     Close();
-
-    delete [] extendedCharSet;
-    extendedCharSet = nullptr;
 }

@@ -6,8 +6,8 @@
 //  Copyright (c) 2015 Cellyceos. All rights reserved.
 //
 
-#ifndef __ProjectGIS__iso8211__
-#define __ProjectGIS__iso8211__
+#ifndef __Standards__iso8211__
+#define __Standards__iso8211__
 
 #define DDF_FIELD_TERMINATOR    0x1E
 #define DDF_UNIT_TERMINATOR     0x1F
@@ -17,10 +17,6 @@
 #include <vector>
 #include <sstream>
 #include <algorithm>
-
-#if _MSC_VER
-    #define noexcept
-#endif
 
 typedef unsigned int uint;
 typedef unsigned char byte;
@@ -41,7 +37,7 @@ namespace Standards {
      * Convert a string into upper case.
      * @param string Points to the string whose letters are to be put into upper case.
      */
-    char* DDFStringUpper(char*& string) noexcept;
+    char* DDFStringUpper(char *&string) noexcept;
 
     /**
      * Read up to byteRead from the passed string, and interpret as an long.
@@ -49,7 +45,7 @@ namespace Standards {
      * @param byteRead number of bytes to read. Default value is 32 bytes.
      * @return the resulting number
      */
-    int DDFScanInt(const char *strSource, byte byteRead = 32) noexcept;
+    int DDFScanInt(const char *strSource, byte byteRead = 32u) noexcept;
 
     /**
      * Clone string
@@ -57,7 +53,7 @@ namespace Standards {
      * @param byteClone number of bytes to need clone.
      * @return pointer to new string.
      */
-    char* DDFCloneString(const char *strSource, size_t byteClone) noexcept;
+    char* DDFCloneString(const char *strSource, const size_t &byteClone) noexcept;
 
     /**
      * Correct string
@@ -102,8 +98,8 @@ namespace Standards {
         char leaderIdentifier = 0;
 
         DDFRecord *currentRecord = nullptr;
-        char* extendedCharSet = new char[4]();
         vector<DDFFieldDefining*> fieldDefinings;
+		char extendedCharSet[4] = { '\0', '\0', '\0', '\0' };
 
     public:
         /**
@@ -131,9 +127,9 @@ namespace Standards {
          * error, or end of file occurs.
          */
         const DDFRecord *ReadRecord() noexcept;
-        
+
         /**
-         * Return to first record.
+         * Return to the first record.
          *
          * @warning The next call to ReadRecord() will read the first data record in the file.
          */
@@ -755,4 +751,4 @@ namespace Standards {
         const byte* GetBinaryData(const DDFSubfieldDefining *&subfieldDef, const ulong &fieldIdx, size_t *byteLeft = nullptr) const noexcept;
     };
 }
-#endif /* defined(__ProjectGIS__iso8211__) */
+#endif /* defined(__Standards__iso8211__) */

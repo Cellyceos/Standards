@@ -36,18 +36,18 @@ int Standards::DDFScanInt(const char *strSource, byte byteRead) noexcept {
     return stoi(strBuffer, nullptr, 10);
 }
 
-char* Standards::DDFCloneString(const char *strSource, size_t strLenght) noexcept {
-    if (!strSource || !strLenght) {
-        return nullptr;
-    }
+char* Standards::DDFCloneString(const char *strSource, const size_t &byteClone) noexcept {
+	if (!strSource || !byteClone) {
+		return nullptr;
+	}
 
-    auto newString = new char[strLenght + 1]();
+	auto newString = new char[byteClone + 1]();
 
-    if (newString) {
-        memcpy(newString, strSource, strLenght);
-    }
+	if (newString) {
+		memcpy(newString, strSource, byteClone);
+	}
 
-    return newString;
+	return newString;
 }
 
 const bool Standards::DDFCorrectString(char *&strSource, size_t byteOffset, size_t *strLenght) noexcept {

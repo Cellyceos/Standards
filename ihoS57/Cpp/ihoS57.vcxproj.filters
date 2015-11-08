@@ -47,9 +47,6 @@
     <ClInclude Include="iso8211.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="vmath.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="0SAMPLE0.000">

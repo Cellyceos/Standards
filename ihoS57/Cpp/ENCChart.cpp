@@ -196,7 +196,7 @@ const bool ENCChart::ReadVector(const DDFRecord *&record, const DDFField *&field
     const DDFField *field = nullptr;
     ENCFeature *geomFeature = nullptr;
     if (RCNM == ENC_RCNM_VI || RCNM == ENC_RCNM_VC) {
-        auto&& pointFeature = static_cast<ENCPointGeometry*>(geomFeature = new ENCPointGeometry);
+        auto &&pointFeature = static_cast<ENCPointGeometry*>(geomFeature = new ENCPointGeometry);
 
         if ((field = record->FindField("SG2D"))) {
             pointFeature->point.x = field->GetSubfieldAsLong("XCOO") / static_cast<double>(COMF);
@@ -218,7 +218,7 @@ const bool ENCChart::ReadVector(const DDFRecord *&record, const DDFField *&field
                 auto &&y = field->GetSubfieldAsLong("YCOO", idx) / static_cast<double>(COMF);
 
                 boundingRegion.Extend(x, y);
-                edgeFeature->points.push_back(Vector3d(x, y, 0.0));
+				edgeFeature->points.push_back({ x, y, 0.0 });
             }
         }
 
@@ -285,12 +285,12 @@ const bool ENCChart::ReadFeature(const DDFRecord *&record, const DDFField *&fiel
     auto &&primFeature = new ENCGeometryPrimitive;
 
     primFeature->RCID = RCID;
-    primFeature->OBJL = fieldFRID->GetSubfieldAsLong("OBJL");
     primFeature->RVER = fieldFRID->GetSubfieldAsLong("RVER");
     primFeature->PRIM = static_cast<ENCgeometricPrimitive>(PRIM);
     primFeature->GRUP = static_cast<byte>(fieldFRID->GetSubfieldAsLong("GRUP"));
     primFeature->RCNM = static_cast<ENCrecordName>(fieldFRID->GetSubfieldAsLong("RCNM"));
-    primFeature->RUIN = static_cast<ENCrecordUpdateInstruction>(fieldFRID->GetSubfieldAsLong("RUIN"));
+	primFeature->OBJL = static_cast<ENCobjectsAcronymCode>(fieldFRID->GetSubfieldAsLong("OBJL"));
+	primFeature->RUIN = static_cast<ENCrecordUpdateInstruction>(fieldFRID->GetSubfieldAsLong("RUIN"));
 
     if ((field = record->FindField("FOID"))) {
         primFeature->AGEN = field->GetSubfieldAsLong("AGEN");

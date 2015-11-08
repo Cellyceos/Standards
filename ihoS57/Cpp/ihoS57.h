@@ -7,12 +7,11 @@
 //  Copyright (c) 2015 Cellyceos. All rights reserved.
 //
 
-#ifndef __ProjectGIS__ihoS57__
-#define __ProjectGIS__ihoS57__
+#ifndef __Standards__ihoS57__
+#define __Standards__ihoS57__
 
 #include <map>
 
-#include "vmath.h"
 #include "iso8211.h"
 
 namespace Standards {
@@ -31,44 +30,108 @@ namespace Standards {
      */
     typedef map<const ulong, const ENCFeature*> FeatureMap;
 
-    class ENCChart {
-        typedef struct {
-            double minX = 0.0;
-            double minY = 0.0;
-            double maxX = 0.0;
-            double maxY = 0.0;
+	struct ENCboundingBox {
+		double minX = 0.0;
+		double minY = 0.0;
+		double maxX = 0.0;
+		double maxY = 0.0;
 
-            bool isValid = false;
+		bool isValid = false;
 
-            /**
-             * Extend the bounding box with a point
-             * @param x the x coordinate
-             * @param y the y coordinate
-             */
-            inline void Extend(const double x, const double y) noexcept {
-                if (isValid) {
-                    minX = min(minX, x);
-                    minY = min(minY, y);
-                    maxX = max(maxX, x);
-                    maxY = max(maxY, y);
-                } else {
-                    minX = maxX = x;
-                    minY = maxY = y;
-                    isValid = true;
-                }
-            }
+		/**
+		* Extend the bounding box with a point
+		* @param x the x coordinate
+		* @param y the y coordinate
+		*/
+		inline void Extend(const double x, const double y) noexcept {
+			if (isValid) {
+				minX = std::min(minX, x);
+				minY = std::min(minY, y);
+				maxX = std::max(maxX, x);
+				maxY = std::max(maxY, y);
+			}
+			else {
+				isValid = true;
+				minX = maxX = x;
+				minY = maxY = y;
+			}
+		}
 
-            /**
-             * Gets width
-             */
-            inline const double GetWidth() const noexcept { return std::abs(maxX - minX); }
+		/**
+		* Extend the bounding box with a point
+		* @param x the x coordinate
+		* @param y the y coordinate
+		*/
+		inline void Extend(const ENCboundingBox bbox) noexcept {
+			if (isValid) {
+				minX = std::min(minX, bbox.minX);
+				minY = std::min(minY, bbox.minY);
+				maxX = std::max(maxX, bbox.maxX);
+				maxY = std::max(maxY, bbox.maxY);
+			}
+			else {
+				isValid = true;
+				minX = bbox.minX;
+				maxX = bbox.maxX;
+				minY = bbox.minX;
+				maxY = bbox.maxY;
+			}
+		}
 
-            /**
-             * Gets height
-             */
-            inline const double GetHeight() const noexcept { return std::abs(maxY - minY); }
-        } ENCboundingBox;
+		/**
+		* Gets width
+		*/
+		inline const double GetWidth() const noexcept { return std::abs(maxX - minX); }
 
+		/**
+		* Gets height
+		*/
+		inline const double GetHeight() const noexcept { return std::abs(maxY - minY); }
+	};
+
+	class Vector3 {
+	public:
+		double x = 0.0;
+		double y = 0.0;
+		double z = 0.0;
+
+		/**
+		 * Creates and sets to (0,0,0)
+		 */
+		Vector3() noexcept = default;
+
+		/**
+		 * Creates and sets to (x,y,z)
+		 * @param nx initial x-coordinate value
+		 * @param ny initial y-coordinate value
+		 * @param nz initial z-coordinate value
+		 */
+		Vector3(double nx, double ny, double nz) noexcept : x(nx), y(ny), z(nz) { }
+
+		/**
+		 * Copy constructor.
+		 * @param src Source of data for new created Vector3 instance.
+		 */
+		Vector3(const Vector3 &src) noexcept : x(src.x), y(src.y), z(src.z) { }
+
+		/**
+		 * Copy operator
+		 * @param rhs Right hand side argument of binary operator.
+		 */
+		Vector3 &operator=(const Vector3 &rhs) noexcept {
+			x = rhs.x;
+			y = rhs.y;
+			z = rhs.z;
+			return *this;
+		}
+
+		/**
+		 * The destructor
+		 */
+		~Vector3() noexcept = default;
+	};
+
+	class ENCChart {
         /**
          * Coordinate multiplication factor
          */
@@ -322,7 +385,7 @@ namespace Standards {
     };
 
     class ENCPointGeometry final : public ENCFeature {
-        Vector3d point = Vector3d();
+        Vector3 point = Vector3();
 
     public:
         /**
@@ -333,7 +396,7 @@ namespace Standards {
         /**
          * Gets the point reference
          */
-        auto GetPointRef() const noexcept -> const Vector3d& { return point; }
+        auto GetPointRef() const noexcept -> const Vector3& { return point; }
 
         /**
          * The destructor
@@ -453,7 +516,7 @@ namespace Standards {
         ENCvectorRecordPointer beginNode = ENCvectorRecordPointer();
         ENCvectorRecordPointer endNode = ENCvectorRecordPointer();
 
-        vector<Vector3d> points;
+        vector<Vector3> points;
     public:
         /**
          * The constructor.
@@ -473,7 +536,7 @@ namespace Standards {
         /**
          * Gets reference for the points array
          */
-        auto GetPointsRef() const noexcept -> const vector<Vector3d>& { return points; }
+        auto GetPointsRef() const noexcept -> const vector<Vector3>& { return points; }
 
         /**
          * The destructor.
@@ -505,12 +568,951 @@ namespace Standards {
         ENC_PRIM_N = 255u
     } ENCgeometricPrimitive;
 
+	typedef enum : uint {
+		/*
+		 * Unknown
+		 */
+		ENC_OBJL_UNKNOWN = 0u,
+
+		/*
+		 * Administration Area(Named)
+		 */
+		ENC_OBJL_ADMARE = 1u,
+
+		/*
+		 * Airport / airfield
+		 */
+		ENC_OBJL_AIRARE = 2u,
+
+		/*
+		 * Anchor berth
+		 */
+		ENC_OBJL_ACHBRT = 3u,
+
+		/*
+		 * Anchorage area
+		 */
+		ENC_OBJL_ACHARE = 4u,
+
+		/*
+		 * Beacon, cardinal
+		 */
+		ENC_OBJL_BCNCAR = 5u,
+
+		/*
+		 * Beacon, isolated danger
+		 */
+		ENC_OBJL_BCNISD = 6u,
+		/*
+		 * Beacon, lateral
+		 */
+		ENC_OBJL_BCNLAT = 7u,
+
+		/*
+		 * Beacon, safe water
+		 */
+		ENC_OBJL_BCNSAW = 8u,
+
+		/*
+		 * Beacon, special purpose / general
+		 */
+		ENC_OBJL_BCNSPP = 9u,
+
+		/*
+		 * Berth
+		 */
+		ENC_OBJL_BERTHS = 10u,
+
+		/*
+		 * Bridge
+		 */
+		ENC_OBJL_BRIDGE = 11u,
+
+		/*
+		 * Building, single
+		 */
+		ENC_OBJL_BUISGL = 12u,
+
+		/*
+		 * Built - up area
+		 */
+		ENC_OBJL_BUAARE = 13u,
+
+		/*
+		 * Buoy, cardinal
+		 */
+		ENC_OBJL_BOYCAR = 14u,
+
+		/*
+		 * Buoy, installation
+		 */
+		ENC_OBJL_BOYINB = 15u,
+
+		/*
+		 * Buoy, isolated danger
+		 */
+		ENC_OBJL_BOYISD = 16u,
+
+		/*
+		 * Buoy, lateral
+		 */
+		ENC_OBJL_BOYLAT = 17u,
+
+		/*
+		 * Buoy, safe water
+		 */
+		ENC_OBJL_BOYSAW = 18u,
+
+		/*
+		 * Buoy, special purpose / general
+		 */
+		ENC_OBJL_BOYSPP = 19u,
+
+		/*
+		 * Cable area
+		 */
+		ENC_OBJL_CBLARE = 20u,
+
+		/*
+		 * Cable, overhead
+		 */
+		ENC_OBJL_CBLOHD = 21u,
+
+		/*
+		 * Cable, submarine
+		 */
+		ENC_OBJL_CBLSUB = 22u,
+
+		/*
+		 * Canal
+		 */
+		ENC_OBJL_CANALS = 23u,
+
+		/*
+		 * Canal bank
+		 * @warning PROHIBITED FOR USE IN ENC
+		 */
+		ENC_OBJL_CANBNK = 24u,
+
+		/*
+		 * Cargo transhipment area
+		 */
+		ENC_OBJL_CTSARE = 25u,
+
+		/*
+		 * Causeway
+		 */
+		ENC_OBJL_CAUSWY = 26u,
+
+		/*
+		 * Caution area
+		 */
+		ENC_OBJL_CTNARE = 27u,
+
+		/*
+			* Checkpoint
+			*/
+		ENC_OBJL_CHKPNT = 28u,
+
+		/*
+		 * Coastguard station
+		 */
+		ENC_OBJL_CGUSTA = 29u,
+		/*
+		 * Coastline
+		 */
+		ENC_OBJL_COALNE = 30u,
+
+		/*
+		 * Contiguous zone
+		 */
+		ENC_OBJL_CONZNE = 31u,
+
+		/*
+		 * Continental shelf area
+		 */
+		ENC_OBJL_COSARE = 32u,
+
+		/*
+		 * Control point
+		 */
+		ENC_OBJL_CTRPNT = 33u,
+
+		/*
+		 * Conveyor
+		 */
+		ENC_OBJL_CONVYR = 34u,
+
+		/*
+		 * Crane
+		 */
+		ENC_OBJL_CRANES = 35u,
+
+		/*
+		 *Current - non - gravitational
+		 */
+		ENC_OBJL_CURENT = 36u,
+
+		/*
+		 * Custom zone
+		 */
+		ENC_OBJL_CUSZNE = 37u,
+
+		/*
+		 * Dam
+		 */
+		ENC_OBJL_DAMCON = 38u,
+
+		/*
+		 * Daymark
+		 */
+		ENC_OBJL_DAYMAR = 39u,
+
+		/*
+		 * Deep water route centerline
+		 */
+		ENC_OBJL_DWRTCL = 40u,
+
+		/*
+		 * Deep water route part
+		 */
+		ENC_OBJL_DWRTPT = 41u,
+
+		/*
+		 * Depth area
+		 */
+		ENC_OBJL_DEPARE = 42u,
+
+		/*
+		 * Depth contour
+		 */
+		ENC_OBJL_DEPCNT = 43u,
+
+		/*
+		 * Distance mark
+		 */
+		ENC_OBJL_DISMAR = 44u,
+
+		/*
+		 * Dock area
+		 */
+		ENC_OBJL_DOCARE = 45u,
+
+		/*
+		 * Dredged area
+		 */
+		ENC_OBJL_DRGARE = 46u,
+
+		/*
+		 * Dry dock
+		 */
+		ENC_OBJL_DRYDOC = 47u,
+
+		/*
+		 * Dumping ground
+		 */
+		ENC_OBJL_DMPGRD = 48u,
+
+		/*
+		 * Dyke
+		 */
+		ENC_OBJL_DYKCON = 49u,
+
+		/*
+		 * Exclusive economic zone
+		 */
+		ENC_OBJL_EXEZNE = 50u,
+
+		/*
+		 * Fairway
+		 */
+		ENC_OBJL_FAIRWY = 51u,
+
+		/*
+		 * Fence / wall
+		 */
+		ENC_OBJL_FNCLNE = 52u,
+
+		/*
+		 * Ferry route
+		 */
+		ENC_OBJL_FERYRT = 53u,
+
+		/*
+		 * Fishery zone
+		 */
+		ENC_OBJL_FSHZNE = 54u,
+
+		/*
+		 * Fishing facility
+		 */
+		ENC_OBJL_FSHFAC = 55u,
+
+		/*
+		 * Fishing ground
+		 */
+		ENC_OBJL_FSHGRD = 56u,
+
+		/*
+		 * Floating dock
+		 */
+		ENC_OBJL_FLODOC = 57u,
+
+		/*
+		 * Fog signal
+		 */
+		ENC_OBJL_FOGSIG = 58u,
+
+		/*
+		 * Fortified structure
+		 */
+		ENC_OBJL_FORSTC = 59u,
+
+		/*
+		 * Free port area
+		 */
+		ENC_OBJL_FRPARE = 60u,
+
+		/*
+		 * Gate
+		 */
+		ENC_OBJL_GATCON = 61u,
+
+		/*
+		 * Gridiron
+		 */
+		ENC_OBJL_GRIDRN = 62u,
+
+		/*
+		 * Harbour area(administrative)
+		 */
+		ENC_OBJL_HRBARE = 63u,
+
+		/*
+		 * Harbour facility
+		 */
+		ENC_OBJL_HRBFAC = 64u,
+
+		/*
+		 * Hulk
+		 */
+		ENC_OBJL_HULKES = 65u,
+
+		/*
+		 * Ice area
+		 */
+		ENC_OBJL_ICEARE = 66u,
+
+		/*
+		 * Incineration area
+		 */
+		ENC_OBJL_ICNARE = 67u,
+
+		/*
+		 * Inshore traffic zone
+		 */
+		ENC_OBJL_ISTZNE = 68u,
+
+		/*
+		 * Lake
+		 */
+		ENC_OBJL_LAKARE = 69u,
+
+		/*
+		 * Lake shore
+		 * @warning PROHIBITED FOR USE IN ENC
+		 */
+		ENC_OBJL_LAKSHR = 70u,
+
+		/*
+		 * Land area
+		 */
+		ENC_OBJL_LNDARE = 71u,
+
+		/*
+		 * Land elevation
+		 */
+		ENC_OBJL_LNDELV = 72u,
+
+		/*
+		 * Land region
+		 */
+		ENC_OBJL_LNDRGN = 73u,
+
+		/*
+		 * Landmark
+		 */
+		ENC_OBJL_LNDMRK = 74u,
+
+		/*
+		 * Light
+		 */
+		ENC_OBJL_LIGHTS = 75u,
+
+		/*
+		 * Light float
+		 */
+		ENC_OBJL_LITFLT = 76u,
+
+		/*
+		 * Light vessel
+		 */
+		ENC_OBJL_LITVES = 77u,
+
+		/*
+		 * Local magnetic anomaly
+		 */
+		ENC_OBJL_LOCMAG = 78u,
+
+		/*
+		 * Lock basin
+		 */
+		ENC_OBJL_LOKBSN = 79u,
+
+		/*
+		 * Log pond
+		 */
+		ENC_OBJL_LOGPON = 80u,
+
+		/*
+		 * Magnetic variation
+		 */
+		ENC_OBJL_MAGVAR = 81u,
+
+		/*
+		 * Marine farm / culture
+		 */
+		ENC_OBJL_MARCUL = 82u,
+
+		/*
+		 * Military practice area
+		 */
+		ENC_OBJL_MIPARE = 83u,
+
+		/*
+		 * Mooring / Warping facility
+		 */
+		ENC_OBJL_MORFAC = 84u,
+
+		/*
+		 * Navigation line
+		 */
+		ENC_OBJL_NAVLNE = 85u,
+
+		/*
+		 * Obstruction
+		 */
+		ENC_OBJL_OBSTRN = 86u,
+
+		/*
+		 * Offshore platform
+		 */
+		ENC_OBJL_OFSPLF = 87u,
+
+		/*
+		 * Offshore production area
+		 */
+		ENC_OBJL_OSPARE = 88u,
+
+		/*
+		 * Oil barrier
+		 */
+		ENC_OBJL_OILBAR = 89u,
+
+		/*
+		 * Pile
+		 */
+		ENC_OBJL_PILPNT = 90u,
+
+		/*
+		 * Pilot boarding place
+		 */
+		ENC_OBJL_PILBOP = 91u,
+
+		/*
+		 * Pipeline area
+		 */
+		ENC_OBJL_PIPARE = 92u,
+
+		/*
+		 * Pipeline, overhead
+		 */
+		ENC_OBJL_PIPOHD = 93u,
+
+		/*
+		 * Pipeline, submarine / on land
+		 */
+		ENC_OBJL_PIPSOL = 94u,
+
+		/*
+		 * Pontoon
+		 */
+		ENC_OBJL_PONTON = 95u,
+
+		/*
+		 * Precautionary area
+		 */
+		ENC_OBJL_PRCARE = 96u,
+
+		/*
+		 * Production / storage area
+		 */
+		ENC_OBJL_PRDARE = 97u,
+
+		/*
+		 * Pylon / bridge support
+		 */
+		ENC_OBJL_PYLONS = 98u,
+
+		/*
+		 * Radar line
+		 */
+		ENC_OBJL_RADLNE = 99u,
+
+		/*
+		 * Radar range
+		 */
+		ENC_OBJL_RADRNG = 100u,
+
+		/*
+		 * Radar reflector
+		 */
+		ENC_OBJL_RADRFL = 101u,
+
+		/*
+		 * Radar station
+		 */
+		ENC_OBJL_RADSTA = 102u,
+
+		/*
+		 * Radar transponder beacon
+		 */
+		ENC_OBJL_RTPBCN = 103u,
+
+		/*
+		 * Radio calling - in point
+		 */
+		ENC_OBJL_RDOCAL = 104u,
+
+		/*
+		 * Radio station
+		 */
+		ENC_OBJL_RDOSTA = 105u,
+
+		/*
+		 * Railway
+		 */
+		ENC_OBJL_RAILWY = 106u,
+
+		/*
+		 * Rapids
+		 */
+		ENC_OBJL_RAPIDS = 107u,
+
+		/*
+		 * Recommended route centerline
+		 */
+		ENC_OBJL_RCRTCL = 108u,
+
+		/*
+		 * Recommended track
+		 */
+		ENC_OBJL_RECTRC = 109u,
+
+		/*
+		 * Recommended traffic lane part
+		 */
+		ENC_OBJL_RCTLPT = 110u,
+
+		/*
+		 * Rescue station
+		 */
+		ENC_OBJL_RSCSTA = 111u,
+
+		/*
+		 * Restricted area
+		 */
+		ENC_OBJL_RESARE = 112u,
+
+		/*
+		 * Retro - reflector
+		 */
+		ENC_OBJL_RETRFL = 113u,
+
+		/*
+		 * River
+		 */
+		ENC_OBJL_RIVERS = 114u,
+
+		/*
+		 * River bank
+		 * @warning PROHIBITED FOR USE IN ENC
+		 */
+		ENC_OBJL_RIVBNK = 115u,
+
+		/*
+		 * Road
+		 */
+		ENC_OBJL_ROADWY = 116u,
+
+		/*
+		 * Runway
+		 */
+		ENC_OBJL_RUNWAY = 117u,
+
+		/*
+		 * Sand waves
+		 */
+		ENC_OBJL_SNDWAV = 118u,
+
+		/*
+		 * Sea area / named water area
+		 */
+		ENC_OBJL_SEAARE = 119u,
+
+		/*
+		 * Sea - plane landing area
+		 */
+		ENC_OBJL_SPLARE = 120u,
+
+		/*
+		 * Seabed area
+		 */
+		ENC_OBJL_SBDARE = 121u,
+
+		/*
+		 * Shoreline construction
+		 */
+		ENC_OBJL_SLCONS = 122u,
+
+		/*
+		 * Signal station, traffic
+		 */
+		ENC_OBJL_SISTAT = 123u,
+
+		/*
+		 * Signal station, warning
+		 */
+		ENC_OBJL_SISTAW = 124u,
+
+		/*
+		 * Silo / tank
+		 */
+		ENC_OBJL_SILTNK = 125u,
+
+		/*
+		 * Slope topline
+		 */
+		ENC_OBJL_SLOTOP = 126u,
+
+		/*
+		 * Sloping ground
+		 */
+		ENC_OBJL_SLOGRD = 127u,
+
+		/*
+		 * Small craft facility
+		 */
+		ENC_OBJL_SMCFAC = 128u,
+
+		/*
+		 * Sounding
+		 */
+		ENC_OBJL_SOUNDG = 129u,
+
+		/*
+		 * Spring
+		 */
+		ENC_OBJL_SPRING = 130u,
+
+		/*
+		 * Square
+		 * @warning PROHIBITED FOR USE IN ENC
+		 */
+		ENC_OBJL_SQUARE = 131u,
+
+		/*
+		 * Straight territorial sea baseline
+		 */
+		ENC_OBJL_STSLNE = 132u,
+
+		/*
+		 * Submarine transit lane
+		 */
+		ENC_OBJL_SUBTLN = 133u,
+
+		/*
+		 * Swept Area
+		 */
+		ENC_OBJL_SWPARE = 134u,
+
+		/*
+		 * Territorial sea area
+		 */
+		ENC_OBJL_TESARE = 135u,
+
+		/*
+		 * Tidal stream - flood / ebb
+		 */
+		ENC_OBJL_TS_FEB = 160u,
+
+		/*
+		 * Tidal stream - harmonic prediction
+		 */
+		ENC_OBJL_TS_PRH = 136u,
+
+		/*
+		 * Tidal stream - non - harmonic prediction
+		 */
+		ENC_OBJL_TS_PNH = 137u,
+
+		/*
+		 * Tidal stream panel data
+		 */
+		ENC_OBJL_TS_PAD = 138u,
+
+		/*
+		 * Tidal stream - time series
+		 */
+		ENC_OBJL_TS_TIS = 139u,
+
+		/*
+		 * Tide - harmonic prediction
+		 */
+		ENC_OBJL_T_HMON = 140u,
+
+		/*
+		 * Tide - non - harmonic prediction
+		 */
+		ENC_OBJL_T_NHMN = 141u,
+
+		/*
+		 * Tide - time series
+		 */
+		ENC_OBJL_T_TIMS = 142u,
+
+		/*
+		 * Tideway
+		 */
+		ENC_OBJL_TIDEWY = 143u,
+
+		/*
+		 * Topmark
+		 */
+		ENC_OBJL_TOPMAR = 144u,
+
+		/*
+		 * Traffic separation line
+		 */
+		ENC_OBJL_TSELNE = 145u,
+
+		/*
+		 * Traffic separation scheme boundary
+		 */
+		ENC_OBJL_TSSBND = 146u,
+
+		/*
+		 * Traffic separation scheme crossing
+		 */
+		ENC_OBJL_TSSCRS = 147u,
+
+		/*
+		 * Traffic separation scheme lane part
+		 */
+		ENC_OBJL_TSSLPT = 148u,
+
+		/*
+		 * Traffic separation scheme roundabout
+		 */
+		ENC_OBJL_TSSRON = 149u,
+
+		/*
+		 * Traffic separation zone
+		 */
+		ENC_OBJL_TSEZNE = 150u,
+
+		/*
+		 * Tunnel
+		 */
+		ENC_OBJL_TUNNEL = 151u,
+
+		/*
+		 * Two - way route part
+		 */
+		ENC_OBJL_TWRTPT = 152u,
+
+		/*
+		 * Underwater / awash rock
+		 */
+		ENC_OBJL_UWTROC = 153u,
+
+		/*
+		 * Unsurveyed area
+		 */
+		ENC_OBJL_UNSARE = 154u,
+
+		/*
+		 * Vegetation
+		 */
+		ENC_OBJL_VEGATN = 155u,
+
+		/*
+		 * Water turbulence
+		 */
+		ENC_OBJL_WATTUR = 156u,
+
+		/*
+		 * Waterfall
+		 */
+		ENC_OBJL_WATFAL = 157u,
+
+		/*
+		 * Weed / Kelp
+		 */
+		ENC_OBJL_WEDKLP = 158u,
+
+		/*
+		 * Wreck
+		 */
+		ENC_OBJL_WRECKS = 159u,
+
+		/*
+		 * Archipelagic Sea Lane
+		 */
+		ENC_OBJL_ARCSLN = 161u,
+
+		/*
+		 * Archipelagic Sea Lane axis
+		 */
+		ENC_OBJL_ASLXIS = 162u,
+
+		 /*
+		 * New object
+		 */
+		ENC_OBJL_NEWOBJ = 163u,
+
+		/*
+		 * Accuracy of data
+		 */
+		ENC_OBJL_M_ACCY = 300u,
+
+		/*
+		 * Compilation scale of data
+		 */
+		ENC_OBJL_M_CSCL = 301u,
+
+		/*
+		 * Coverage
+		 */
+		ENC_OBJL_M_COVR = 302u,
+
+		/*
+		 * Horizontal datum of data
+		 * @warning PROHIBITED FOR USE IN ENC
+		 */
+		ENC_OBJL_M_HDAT = 303u,
+
+		/*
+		 * Horizontal datum shift parameters
+		 */
+		ENC_OBJL_M_HOPA = 304u,
+
+		/*
+		 * Nautical publication information
+		 */
+		ENC_OBJL_M_NPUB = 305u,
+
+		/*
+		 * Navigational system of marks
+		 */
+		ENC_OBJL_M_NSYS = 306u,
+
+		/*
+		 * Production information
+		 * @warning PROHIBITED FOR USE IN ENC
+		 */
+		ENC_OBJL_M_PROD = 307u,
+
+		/*
+		 * Quality of data
+		 */
+		ENC_OBJL_M_QUAL = 308u,
+
+		/*
+		 * Sounding datum
+		 */
+		ENC_OBJL_M_SDAT = 309u,
+
+		/*
+		 * Survey reliability
+		 */
+		ENC_OBJL_M_SREL = 310u,
+
+		/*
+		 * Units of measurement of data
+		 * @warning PROHIBITED FOR USE IN ENC
+		 */
+		ENC_OBJL_M_UNIT = 311u,
+
+		/*
+		 * Vertical datum of data
+		 */
+		ENC_OBJL_M_VDAT = 312u,
+
+		/*
+		 * Aggregation
+		 */
+		ENC_OBJL_C_AGGR = 400u,
+
+		/*
+		 * Association
+		 */
+		ENC_OBJL_C_ASSO = 401u,
+
+		/*
+		 * Stacked on / stacked under
+		 * @warning PROHIBITED FOR USE IN ENC
+		 */
+		ENC_OBJL_C_STAC = 402u,
+
+		/*
+		 * Cartographic area
+		 * @warning PROHIBITED FOR USE IN ENC
+		 */
+		ENC_OBJL_$AREAS = 500u,
+
+		/*
+		 * Cartographic line
+		 * @warning PROHIBITED FOR USE IN ENC
+		 */
+		ENC_OBJL_$LINES = 501u,
+
+		/*
+		 * Cartographic symbol
+		 * @warning PROHIBITED FOR USE IN ENC
+		 */
+		ENC_OBJL_$CSYMB = 502u,
+
+		/*
+		 * Compass
+		 * @warning PROHIBITED FOR USE IN ENC
+		 */
+		ENC_OBJL_$COMPS = 503u,
+
+		/*
+		 * Text
+		 * @warning PROHIBITED FOR USE IN ENC
+		 */
+		ENC_OBJL_$TEXTS = 504u
+	} ENCobjectsAcronymCode;
+
+
     #define ENC_NO_GROUP 255u
     class ENCPrimitive : public ENCFeature {
         /**
          * Object label/code
          */
-        ulong OBJL = 0ul;
+		ENCobjectsAcronymCode OBJL = ENC_OBJL_UNKNOWN;
 
         /**
          * Group
@@ -562,7 +1564,7 @@ namespace Standards {
         /**
          * Gets the object label / code
          */
-        auto GetOBJL() const noexcept -> const ulong& { return OBJL; }
+        auto GetOBJL() const noexcept -> const ENCobjectsAcronymCode& { return OBJL; }
 
         /**
          * Gets the producing agency code
@@ -661,4 +1663,4 @@ namespace Standards {
     };
 }
 
-#endif /* defined(__ProjectGIS__ihoS57__) */
+#endif /* defined(__Standards__ihoS57__) */
