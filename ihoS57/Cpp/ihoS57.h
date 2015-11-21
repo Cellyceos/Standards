@@ -1448,7 +1448,7 @@ namespace Standards {
         /**
          * The constructor
          */
-        ENCPrimitive(const ulong &prim, const ulong &rcid, const ulong &rver, const ulong &ruin) noexcept : ENCFeature(ENC_RCNM_FE, rcid, rver, ruin) {
+        ENCPrimitive(const ulong &prim, const ulong &rcnm, const ulong &rcid, const ulong &rver, const ulong &ruin) noexcept : ENCFeature(rcnm, rcid, rver, ruin) {
             PRIM = static_cast<ENCgeometricPrimitive>(prim);
         }
     public:
@@ -1538,7 +1538,7 @@ namespace Standards {
         /**
          * The constructor
          */
-        ENCGeometryPrimitive(const ulong &prim, const ulong &rcid, const ulong &rver, const ulong &ruin) noexcept : FSPTObjects() { };
+        ENCGeometryPrimitive(const ulong &prim, const ulong &rcnm, const ulong &rcid, const ulong &rver, const ulong &ruin) noexcept : ENCPrimitive(prim, rcnm, rcid, rver, ruin), FSPTObjects() { };
 
         /**
          * Gets the vector of the feature record to spatial record pointers

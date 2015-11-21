@@ -285,12 +285,13 @@ const bool ENCChart::ReadFeature(const DDFRecord *&record, const DDFField *&fiel
         return false;
     }
 
+    auto &&RCNM = fieldFRID->GetSubfieldAsLong("RCNM");
     auto &&RCID = fieldFRID->GetSubfieldAsLong("RCID");
     auto &&RVER = fieldFRID->GetSubfieldAsLong("RVER");
     auto &&RUIN = fieldFRID->GetSubfieldAsLong("RUIN");
 
     const DDFField *field = nullptr;
-    auto &&primFeature = new ENCGeometryPrimitive(PRIM, RCID, RVER, RUIN);
+    auto &&primFeature = new ENCGeometryPrimitive(PRIM, RCNM, RCID, RVER, RUIN);
 
     primFeature->GRUP = static_cast<byte>(fieldFRID->GetSubfieldAsLong("GRUP"));
 	primFeature->OBJL = static_cast<ENCobjectAcronymCodes>(fieldFRID->GetSubfieldAsLong("OBJL"));
