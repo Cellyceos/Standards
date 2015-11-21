@@ -6,7 +6,6 @@
 //  Copyright (c) 2015 Cellyceos. All rights reserved.
 //
 
-#include <cstring>
 #include "iso8211.h"
 
 char* Standards::DDFStringUpper(char *&string) noexcept {
@@ -66,7 +65,7 @@ const bool Standards::DDFCorrectString(char *&strSource, size_t byteOffset, size
 
 char* Standards::DDFFetchVariable(const char *strRecord, size_t strLenght, size_t *consumedChar, const char delimCharOne, const char delimCharSecond) noexcept {
     size_t idx;
-    for (idx = 0ull; idx < strLenght && strRecord[idx] != delimCharOne && strRecord[idx] != delimCharSecond; idx++ );
+    for (idx = 0ul; idx < strLenght && strRecord[idx] != delimCharOne && strRecord[idx] != delimCharSecond; ++idx);
 
     auto resultVariable = new char[idx + 1]();
     memcpy(resultVariable, strRecord, idx);

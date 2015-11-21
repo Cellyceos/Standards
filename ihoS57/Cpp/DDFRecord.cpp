@@ -22,16 +22,14 @@ const DDFField* DDFRecord::GetField(const ulong &idx) const {
     return fields[idx];
 }
 
-const DDFField *DDFRecord::FindField(const string &fieldName, ulong fieldIndex) const {
-    for (auto idx = 0ul; idx < fields.size(); idx++) {
+const DDFField *DDFRecord::FindField(const string &fieldName) const {
+    const auto &&fieldsSize = fields.size();
+    
+    for (auto idx = 0ul; idx < fieldsSize; ++idx) {
         auto currentFieldName = fields[idx]->GetFieldDefining()->GetName();
 
         if (fieldName == currentFieldName) {
-            if (!fieldIndex) {
-                return fields[idx];
-            } else {
-                --fieldIndex;
-            }
+            return fields[idx];
         }
     }
 
@@ -132,7 +130,7 @@ bool DDFRecord::ReadHeader() {
 
 void DDFRecord::Clear() {
     if (fields.size()) {
-        for (auto&& field : fields) {
+        for (auto &&field : fields) {
             delete field;
             field = nullptr;
         }

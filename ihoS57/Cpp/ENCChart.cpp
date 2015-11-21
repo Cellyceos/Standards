@@ -52,9 +52,10 @@ const bool ENCChart::Ingest() noexcept {
         if (fieldDefiningName == "DSID") {
             DSNM = field->GetSubfieldAsString("DSNM");
 
-            auto&& dssi = record->GetField(2ull);
+            auto &&dssi = record->GetField(2ull);
             NALL = dssi->GetSubfieldAsLong("NALL");
             AALL = dssi->GetSubfieldAsLong("AALL");
+            DSTR = static_cast<ENCdataStructure>(dssi->GetSubfieldAsLong("DSTR"));
         } else if (fieldDefiningName == "DSPM") {
             COMF = max(1l, field->GetSubfieldAsLong("COMF"));
             SOMF = max(1l, field->GetSubfieldAsLong("SOMF"));
@@ -64,10 +65,10 @@ const bool ENCChart::Ingest() noexcept {
         } else if (fieldDefiningName == "FRID") {
             ReadFeature(record, field);
         } else {
-            cout << "INFO: Skipping '" << fieldDefiningName << "' record in ihoS57::Ingest()." << endl;
+            cout << "INFO: Skipping '" << fieldDefiningName << "' record in ENCChart::Ingest()." << endl;
         }
     }
-
+    
     isFileIngested = true;
 
     return FindAndUpplyUpdates();
@@ -80,7 +81,8 @@ const bool ENCChart::View() noexcept {
     while ((record = module->ReadRecord())) {
         cout << "Record " << ++recordNumber << " (" << record->GetDataSize() << " bytes)" << endl;
 
-        for (auto fieldIdx = 0ul; fieldIdx < record->GetFieldCount(); ++fieldIdx) {
+        const auto &&fieldCount = record->GetFieldCount();
+        for (auto fieldIdx = 0ul; fieldIdx < fieldCount; ++fieldIdx) {
             auto &&field = record->GetField(fieldIdx);
             auto &&fieldDefining = field->GetFieldDefining();
 
@@ -88,10 +90,12 @@ const bool ENCChart::View() noexcept {
             auto dataSize = field->GetDataSize();
             auto binaryData = field->GetBinaryData();
 
-            for (auto fieldIdx = 0ul; fieldIdx < field->GetRepeatCount(); ++fieldIdx) {
+            const auto &&repeatCount = field->GetRepeatCount();
+            for (auto fieldIdx = 0ul; fieldIdx < repeatCount; ++fieldIdx) {
                 cout << "Field " << fieldDefining->GetName() << ": " << fieldDefining->GetDescription() << endl;
 
-                for (auto subfieldIdx = 0ul; subfieldIdx < fieldDefining->GetSubfieldCount(); ++subfieldIdx) {
+                const auto &&subfieldCount = fieldDefining->GetSubfieldCount();
+                for (auto subfieldIdx = 0ul; subfieldIdx < subfieldCount; ++subfieldIdx) {
                     auto &&subfieldDefining = fieldDefining->GetSubfieldDefining(subfieldIdx);
                     auto &&subfieldName = subfieldDefining->GetName();
 
@@ -180,117 +184,116 @@ const bool ENCChart::FindAndUpplyUpdates() noexcept {
     return true;
 }
 
-const bool ENCChart::ApplyUpdates(DDFModule &updModule, byte &updNumber) noexcept{
-    return true;
+const bool ENCChart::ApplyUpdates(DDFModule &updModule, byte &updNumber) noexcept {
+    return false;
 }
 
-const bool ENCChart::ReadVector(const DDFRecord *&record, const DDFField *&fieldVRID) noexcept{
+const bool ENCChart::ReadVector(const DDFRecord *&record, const DDFField *&fieldVRID) noexcept {
     auto &&RCNM = fieldVRID->GetSubfieldAsLong("RCNM");
-    auto &&RCID = fieldVRID->GetSubfieldAsLong("RCID");
 
     if (RCNM < ENC_RCNM_VI || RCNM > ENC_RCNM_VF) {
         cout << "ERROR: Unrecognised record name code '" << RCNM << "'." << endl << "Field initialization incorrect." << endl;
         return false;
     }
 
+    auto &&RCID = fieldVRID->GetSubfieldAsLong("RCID");
+    auto &&RVER = fieldVRID->GetSubfieldAsLong("RVER");
+    auto &&RUIN = fieldVRID->GetSubfieldAsLong("RUIN");
+
     const DDFField *field = nullptr;
-    ENCFeature *geomFeature = nullptr;
     if (RCNM == ENC_RCNM_VI || RCNM == ENC_RCNM_VC) {
-        auto &&pointFeature = static_cast<ENCPointGeometry*>(geomFeature = new ENCPointGeometry);
+        auto &&pointFeature = new ENCPointGeometry(RCNM, RCID, RVER, RUIN);
 
         if ((field = record->FindField("SG2D"))) {
-            pointFeature->point.x = field->GetSubfieldAsLong("XCOO") / static_cast<double>(COMF);
-            pointFeature->point.y = field->GetSubfieldAsLong("YCOO") / static_cast<double>(COMF);
+            pointFeature->point.x = field->GetSubfieldAsLong("XCOO") / COMF;
+            pointFeature->point.y = field->GetSubfieldAsLong("YCOO") / COMF;
         } else if ((field = record->FindField("SG3D"))){
-            pointFeature->point.x = field->GetSubfieldAsLong("XCOO") / static_cast<double>(COMF);
-            pointFeature->point.y = field->GetSubfieldAsLong("YCOO") / static_cast<double>(COMF);
-            pointFeature->point.z = field->GetSubfieldAsLong("VE3D") / static_cast<double>(SOMF);
+            pointFeature->point.x = field->GetSubfieldAsLong("XCOO") / COMF;
+            pointFeature->point.y = field->GetSubfieldAsLong("YCOO") / COMF;
+            pointFeature->point.z = field->GetSubfieldAsLong("VE3D") / SOMF;
+        } else {
+            cout << "Error: Can't find SG2D or SG3D in RCID = " << RCID << endl;
+            
+            delete pointFeature;
+            pointFeature = nullptr;
+            
+            return false;
         }
 
         boundingRegion.Extend(pointFeature->point.x, pointFeature->point.y);
+        
+        if (RCNM == ENC_RCNM_VI)
+            isolatedNodes[RCID] = pointFeature;
+        else
+            connectedNodes[RCID] = pointFeature;
     } else if (RCNM == ENC_RCNM_VE) {
-        auto &&edgeFeature = static_cast<ENCEdgeGeometry*>(geomFeature = new ENCEdgeGeometry);
+        auto &&edgeFeature = new ENCEdgeGeometry(RCNM, RCID, RVER, RUIN);
 
         if ((field = record->FindField("SG2D"))) {
             auto &&count = field->GetRepeatCount();
-            for (auto idx = 0ul; idx < count; idx++) {
-                auto &&x = field->GetSubfieldAsLong("XCOO", idx) / static_cast<double>(COMF);
-                auto &&y = field->GetSubfieldAsLong("YCOO", idx) / static_cast<double>(COMF);
+            edgeFeature->points.resize(count);
+            
+            for (auto idx = 0ul; idx < count; ++idx) {
+                auto &&x = field->GetSubfieldAsLong("XCOO", idx) / COMF;
+                auto &&y = field->GetSubfieldAsLong("YCOO", idx) / COMF;
 
                 boundingRegion.Extend(x, y);
-				edgeFeature->points.push_back({ x, y, 0.0 });
+				edgeFeature->points[idx] = { x, y };
             }
         }
 
-        if ((field = record->FindField("VRPT"))) {
+        if ((field = record->FindField("VRPT")) && field->GetRepeatCount() == 2) {
             auto binaryString = field->GetSubfieldAsBinary("NAME");
 
-            edgeFeature->beginNode.RCNM = static_cast<ENCrecordName>(binaryString[0]);
+            edgeFeature->beginNode.RCNM = static_cast<ENCrecordName>(*binaryString);
             edgeFeature->beginNode.ORNT = static_cast<ENCorientation>(field->GetSubfieldAsLong("ORNT"));
             edgeFeature->beginNode.USAG = static_cast<ENCusageIndicator>(field->GetSubfieldAsLong("USAG"));
             edgeFeature->beginNode.MASK = static_cast<ENCmaskingIndicator>(field->GetSubfieldAsLong("MASK"));
             edgeFeature->beginNode.TOPI = static_cast<ENCtopologyIndicator>(field->GetSubfieldAsLong("TOPI"));
             edgeFeature->beginNode.RCID = binaryString[1] + (binaryString[2] * 256u) + (binaryString[3] * 65536u) + (binaryString[4] * 16777216u);
 
-            if (field->GetRepeatCount() > 1) {
-                binaryString = field->GetSubfieldAsBinary("NAME", 1ul);
+            binaryString = field->GetSubfieldAsBinary("NAME", 1ul);
 
-                edgeFeature->endNode.RCNM = static_cast<ENCrecordName>(binaryString[0]);
-                edgeFeature->endNode.ORNT = static_cast<ENCorientation>(field->GetSubfieldAsLong("ORNT", 1ul));
-                edgeFeature->endNode.USAG = static_cast<ENCusageIndicator>(field->GetSubfieldAsLong("USAG", 1ul));
-                edgeFeature->endNode.MASK = static_cast<ENCmaskingIndicator>(field->GetSubfieldAsLong("MASK", 1ul));
-                edgeFeature->endNode.TOPI = static_cast<ENCtopologyIndicator>(field->GetSubfieldAsLong("TOPI", 1ul));
-                edgeFeature->endNode.RCID = binaryString[1] + (binaryString[2] * 256u) + (binaryString[3] * 65536u) + (binaryString[4] * 16777216u);
-            }
+            edgeFeature->endNode.RCNM = static_cast<ENCrecordName>(*binaryString);
+            edgeFeature->endNode.ORNT = static_cast<ENCorientation>(field->GetSubfieldAsLong("ORNT", 1ul));
+            edgeFeature->endNode.USAG = static_cast<ENCusageIndicator>(field->GetSubfieldAsLong("USAG", 1ul));
+            edgeFeature->endNode.MASK = static_cast<ENCmaskingIndicator>(field->GetSubfieldAsLong("MASK", 1ul));
+            edgeFeature->endNode.TOPI = static_cast<ENCtopologyIndicator>(field->GetSubfieldAsLong("TOPI", 1ul));
+            edgeFeature->endNode.RCID = binaryString[1] + (binaryString[2] * 256u) + (binaryString[3] * 65536u) + (binaryString[4] * 16777216u);
+        } else {
+            cout << "Error: " << endl;
+            
+            delete edgeFeature;
+            edgeFeature = nullptr;
+            
+            return false;
         }
+        
+        edges[RCID] = edgeFeature;
     } /*else if (RCNM == ENC_RCNM_VF) {
 
     }*/
-
-    geomFeature->RCID = RCID;
-    geomFeature->RCNM = static_cast<ENCrecordName>(RCNM);
-    geomFeature->RVER = fieldVRID->GetSubfieldAsLong("RVER");
-    geomFeature->RUIN = static_cast<ENCrecordUpdateInstruction>(fieldVRID->GetSubfieldAsLong("RUIN"));
-
-    switch (RCNM) {
-        case ENC_RCNM_VC:
-            connectedNodes[RCID] = geomFeature;
-            break;
-        case ENC_RCNM_VE:
-            edges[RCID] = geomFeature;
-            break;
-        case ENC_RCNM_VI:
-            isolatedNodes[RCID] = geomFeature;
-            break;
-        /*case ENC_RCNM_VF:
-            faces[RCID] = geomFeature;
-            break;*/
-        default:
-            return false;
-    }
 
     return true;
 }
 
 const bool ENCChart::ReadFeature(const DDFRecord *&record, const DDFField *&fieldFRID) noexcept{
     auto &&PRIM = fieldFRID->GetSubfieldAsLong("PRIM");
-    auto &&RCID = fieldFRID->GetSubfieldAsLong("RCID");
 
     if (PRIM > ENC_PRIM_A/* && PRIM != ENC_PRIM_N */) {
         cout << "ERROR: Unrecognised geometric object primitive code '" << PRIM << "'." << endl << "Field initialization incorrect." << endl;
         return false;
     }
 
-    const DDFField *field = nullptr;
-    auto &&primFeature = new ENCGeometryPrimitive;
+    auto &&RCID = fieldFRID->GetSubfieldAsLong("RCID");
+    auto &&RVER = fieldFRID->GetSubfieldAsLong("RVER");
+    auto &&RUIN = fieldFRID->GetSubfieldAsLong("RUIN");
 
-    primFeature->RCID = RCID;
-    primFeature->RVER = fieldFRID->GetSubfieldAsLong("RVER");
-    primFeature->PRIM = static_cast<ENCgeometricPrimitive>(PRIM);
+    const DDFField *field = nullptr;
+    auto &&primFeature = new ENCGeometryPrimitive(PRIM, RCID, RVER, RUIN);
+
     primFeature->GRUP = static_cast<byte>(fieldFRID->GetSubfieldAsLong("GRUP"));
-    primFeature->RCNM = static_cast<ENCrecordName>(fieldFRID->GetSubfieldAsLong("RCNM"));
-	primFeature->OBJL = static_cast<ENCobjectsAcronymCode>(fieldFRID->GetSubfieldAsLong("OBJL"));
-	primFeature->RUIN = static_cast<ENCrecordUpdateInstruction>(fieldFRID->GetSubfieldAsLong("RUIN"));
+	primFeature->OBJL = static_cast<ENCobjectAcronymCodes>(fieldFRID->GetSubfieldAsLong("OBJL"));
 
     if ((field = record->FindField("FOID"))) {
         primFeature->AGEN = field->GetSubfieldAsLong("AGEN");
@@ -299,19 +302,20 @@ const bool ENCChart::ReadFeature(const DDFRecord *&record, const DDFField *&fiel
     }
 
     if ((field = record->FindField("FSPT"))) {
-        auto&& count = field->GetRepeatCount();
+        auto &&count = field->GetRepeatCount();
+        primFeature->FSPTObjects.resize(count);
 
-        ENCGeometryPrimitive::ENCspatialRecordPointer record;
-        for (auto idx = 0ul; idx < count; idx++) {
+        ENCspatialRecordPointer record;
+        for (auto idx = 0ul; idx < count; ++idx) {
             auto binaryString = field->GetSubfieldAsBinary("NAME", idx);
 
-            record.RCNM = static_cast<ENCrecordName>(binaryString[0]);
+            record.RCNM = static_cast<ENCrecordName>(*binaryString);
             record.ORNT = static_cast<ENCorientation>(field->GetSubfieldAsLong("ORNT", idx));
             record.USAG = static_cast<ENCusageIndicator>(field->GetSubfieldAsLong("USAG", idx));
             record.MASK = static_cast<ENCmaskingIndicator>(field->GetSubfieldAsLong("MASK", idx));
             record.RCID = binaryString[1] + (binaryString[2] * 256u) + (binaryString[3] * 65536u) + (binaryString[4] * 16777216u);
 
-            primFeature->FSPTObjects.push_back(record);
+            primFeature->FSPTObjects[idx] = record;
         }
     }
 

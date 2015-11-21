@@ -68,7 +68,7 @@ const bool DDFModule::Open(const string& fileName, const bool testOpen) noexcept
         return false;
     }
 
-    const ulong pachRecordLenght = recordLenght - DDF_LEADER_SIZE;
+    const auto &&pachRecordLenght = recordLenght - DDF_LEADER_SIZE;
     auto pachRecord = new char[pachRecordLenght + 1]();
 
     if (!DDFfileBuf.read(pachRecord, pachRecordLenght)) {
@@ -79,7 +79,7 @@ const bool DDFModule::Open(const string& fileName, const bool testOpen) noexcept
         return false;
     }
 
-    const ulong fieldEntryWidth = sizeFieldLenght + sizeFieldPosition + sizeFieldTag;
+    const auto &&fieldEntryWidth = sizeFieldLenght + sizeFieldPosition + sizeFieldTag;
     for (auto idx = 0ul; idx < pachRecordLenght && pachRecord[idx] != DDF_FIELD_TERMINATOR; idx += fieldEntryWidth) {
         auto entryOffset = idx;
 
@@ -98,6 +98,9 @@ const bool DDFModule::Open(const string& fileName, const bool testOpen) noexcept
 
             Close();
 
+            delete [] tagName;
+            tagName = nullptr;
+            
             delete [] pachRecord;
             pachRecord = nullptr;
 
@@ -107,7 +110,7 @@ const bool DDFModule::Open(const string& fileName, const bool testOpen) noexcept
         auto field = DDFFieldDefining::Initialize(fieldControlLenght, sizeFieldTag, tagName, fieldLenght, pachRecord + fieldOffset);
 
         if (field) {
-            fieldDefinings.push_back(field);
+            fieldDefinings[tagName] = field;
         }
     }
 
@@ -131,22 +134,11 @@ void DDFModule::Rewind() noexcept {
     DDFfileBuf.seekg(firstRecordOffset, ios::beg);
 }
 
-const DDFFieldDefining *DDFModule::GetFieldDefining(const ulong &idx) const noexcept {
-    if (idx >= fieldDefinings.size()) {
-        return nullptr;
-    }
-
-    return fieldDefinings[idx];
-}
-
-const DDFFieldDefining *DDFModule::FindFieldDefining(const string& fieldName) const noexcept {
-    for (auto idx = 0ul; idx < fieldDefinings.size(); idx++) {
-        auto currentFieldName = fieldDefinings[idx]->GetName();
-
-        if (fieldName == currentFieldName) {
-            return fieldDefinings[idx];
-        }
-    }
+const DDFFieldDefining *DDFModule::FindFieldDefining(const string &fieldName) const noexcept {
+    auto &&field = fieldDefinings.find(fieldName);
+    
+    if (field != fieldDefinings.end())
+        return field->second;
 
     return nullptr;
 }
@@ -157,9 +149,9 @@ void DDFModule::Close() noexcept {
     }
 
     if (fieldDefinings.size()) {
-        for (auto&& field : fieldDefinings) {
-            delete field;
-            field = nullptr;
+        for (auto &&field : fieldDefinings) {
+            delete field.second;
+            field.second = nullptr;
         }
 
         fieldDefinings.clear();

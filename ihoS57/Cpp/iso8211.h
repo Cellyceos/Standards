@@ -13,6 +13,7 @@
 #define DDF_UNIT_TERMINATOR     0x1F
 #define DDF_LEADER_SIZE         0x18
 
+#include <map>
 #include <string>
 #include <vector>
 #include <sstream>
@@ -98,7 +99,7 @@ namespace Standards {
         char leaderIdentifier = 0;
 
         DDFRecord *currentRecord = nullptr;
-        vector<DDFFieldDefining*> fieldDefinings;
+        map<string, DDFFieldDefining*> fieldDefinings;
 		char extendedCharSet[4] = { '\0', '\0', '\0', '\0' };
 
     public:
@@ -136,13 +137,6 @@ namespace Standards {
         void Rewind() noexcept;
 
         /**
-         * Fetch a field definition by index.
-         * @param idx (from 0 to GetFieldCount() - 1).
-         * @return the returned field pointer or nullptr if the index is out of range.
-         */
-        const DDFFieldDefining *GetFieldDefining(const ulong &idx) const noexcept;
-
-        /**
          * Fetch the definition of the named field.
          * @param fieldName The name of the field to search for.  The comparison is case insensitive.
          * @return A pointer to the request DDFSubfieldDefining object is returned, or nullptr
@@ -160,13 +154,6 @@ namespace Standards {
          * Fetch the number of defined fields.
          */
         const size_t GetFieldCount() const noexcept { return fieldDefinings.size(); }
-
-        /**
-         * Fetch a field definition by index.
-         * @param idx (from 0 to GetFieldCount() - 1).
-         * @return the returned field pointer or nullptr if the index is out of range.
-         */
-        const DDFFieldDefining *operator[] (const ulong &idx) const noexcept { return GetFieldDefining(idx); }
 
         /**
          * Fetch the definition of the named field.
@@ -587,7 +574,7 @@ namespace Standards {
          * @warning This pointer is to an internal object, and shouldn't be freed.
          * It remains valid until the next record read.
          */
-        const DDFField *FindField(const string &fieldName, ulong fieldIndex = 0ul) const;
+        const DDFField *FindField(const string &fieldName) const;
 
         /**
          * Get the number of DDFFields on this record.

@@ -14,7 +14,7 @@
 using namespace std;
 using namespace Standards;
 
-DDFSubfieldDefining const* DDFFieldDefining::GetSubfieldDefining(const ulong& idx) const noexcept {
+DDFSubfieldDefining const* DDFFieldDefining::GetSubfieldDefining(const ulong &idx) const noexcept {
     if (idx >= subfieldDefinings.size()) {
         return nullptr;
     }
@@ -22,12 +22,14 @@ DDFSubfieldDefining const* DDFFieldDefining::GetSubfieldDefining(const ulong& id
     return subfieldDefinings[idx];
 }
 
-const DDFSubfieldDefining* DDFFieldDefining::FindSubfieldDefining(const string& mnemonicTag) const noexcept {
-    for (auto i = 0ul; i < subfieldDefinings.size(); i++) {
-        auto&& currentSubfieldName = subfieldDefinings[i]->GetName();
+const DDFSubfieldDefining* DDFFieldDefining::FindSubfieldDefining(const string &mnemonicTag) const noexcept {
+    const auto &&subfieldDefiningsSize = subfieldDefinings.size();
+    
+    for (auto idx = 0ul; idx < subfieldDefiningsSize; ++idx) {
+        auto &&currentSubfieldName = subfieldDefinings[idx]->GetName();
 
         if (currentSubfieldName == mnemonicTag) {
-            return subfieldDefinings[i];
+            return subfieldDefinings[idx];
         }
     }
 
@@ -51,12 +53,12 @@ bool DDFFieldDefining::BuildSubfields(const char*& descriptorArray, const size_t
     char* formatString = nullptr;
     auto subDescriptors = strchr(descriptors, '*');
 
-    size_t numberOfRepeat = 0ull;
-    size_t formatStringOffset = 0ull;
-    size_t mnemonicNameOffset = 0ull;
-    size_t formatStringLenght = 0ull;
-    size_t mnemonicNameLenght = 0ull;
-    size_t subDescriptorLenght = subDescriptors ? strlen(subDescriptors) : 0ull;
+    size_t numberOfRepeat = 0ul;
+    size_t formatStringOffset = 0ul;
+    size_t mnemonicNameOffset = 0ul;
+    size_t formatStringLenght = 0ul;
+    size_t mnemonicNameLenght = 0ul;
+    size_t subDescriptorLenght = subDescriptors ? strlen(subDescriptors) : 0ul;
 
     while (mnemonicNameOffset < (descriptorArrayLenght - subDescriptorLenght)) {
         if (!numberOfRepeat && !subDescriptors) {
@@ -200,7 +202,7 @@ DDFFieldDefining::~DDFFieldDefining() noexcept {
     }
 
     if (subfieldDefinings.size()) {
-        for (auto&& subField : subfieldDefinings) {
+        for (auto &&subField : subfieldDefinings) {
             delete subField;
             subField = nullptr;
         }

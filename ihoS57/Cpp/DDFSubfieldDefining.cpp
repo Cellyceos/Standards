@@ -164,11 +164,11 @@ const byte* DDFSubfieldDefining::ExtractDataAsBinary(const byte *sourceData, con
 }
 
 const size_t DDFSubfieldDefining::GetDataLenght(const byte *sourceData, const size_t &dataSize, size_t* consumedBytes) const noexcept {
-    size_t dataLenght = 0ull;
+    size_t dataLenght = 0ul;
 
     if (!isVariable) {
         if (formatWidth > dataSize) {
-            cout << "WARNING: Only " << dataSize << " bytes avaulable for subfield " << label << endl;
+            cout << "WARNING: Only " << dataSize << " bytes available for subfield " << label << endl;
 
             dataLenght = dataSize;
         } else {
@@ -180,12 +180,12 @@ const size_t DDFSubfieldDefining::GetDataLenght(const byte *sourceData, const si
         }
     } else {
         long extraConsumedBytes = 0l;
-        bool isAsciiField = !(dataSize > 1 && (sourceData[dataSize - 2] == DDF_UNIT_TERMINATOR || sourceData[dataSize - 2] == DDF_UNIT_TERMINATOR) && !sourceData[dataSize - 1]);
+        bool isAsciiField = !(dataSize > 1 && (sourceData[dataSize - 2] == DDF_UNIT_TERMINATOR || sourceData[dataSize - 2] == DDF_FIELD_TERMINATOR) && !sourceData[dataSize - 1]);
 
         while (dataLenght < dataSize) {
-            if (isAsciiField && (sourceData[dataLenght] == DDF_UNIT_TERMINATOR || sourceData[dataLenght] == DDF_UNIT_TERMINATOR)) {
+            if (isAsciiField && (sourceData[dataLenght] == DDF_UNIT_TERMINATOR || sourceData[dataLenght] == DDF_FIELD_TERMINATOR)) {
                 break;
-            } else if (dataLenght > 0 && (sourceData[dataLenght - 1] == DDF_UNIT_TERMINATOR || sourceData[dataLenght - 1] == DDF_UNIT_TERMINATOR) && !sourceData[dataLenght]) {
+            } else if (dataLenght > 0 && (sourceData[dataLenght - 1] == DDF_UNIT_TERMINATOR || sourceData[dataLenght - 1] == DDF_FIELD_TERMINATOR) && !sourceData[dataLenght]) {
                 if ((dataLenght + 1) < dataSize && sourceData[dataLenght + 1] == DDF_FIELD_TERMINATOR) {
                     ++extraConsumedBytes;
                 }
@@ -317,7 +317,7 @@ DDFSubfieldDefining::~DDFSubfieldDefining() noexcept {
     }
 
     if (subfieldDefinings.size()) {
-        for (auto&& subField : subfieldDefinings) {
+        for (auto &&subField : subfieldDefinings) {
             delete subField;
             subField = nullptr;
         }

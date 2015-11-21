@@ -47,7 +47,7 @@ const char* DDFField::GetSubfieldAsString(const string &sufieldName, const ulong
 }
 
 const byte* DDFField::GetSubfieldAsBinary(const string &sufieldName, const ulong fieldIdx) const noexcept {
-    auto&& subfield = fieldDefining->FindSubfieldDefining(sufieldName);
+    auto &&subfield = fieldDefining->FindSubfieldDefining(sufieldName);
     
     if (!subfield)
         return nullptr;
@@ -55,16 +55,18 @@ const byte* DDFField::GetSubfieldAsBinary(const string &sufieldName, const ulong
     return GetBinaryData(subfield, fieldIdx);
 }
 
-const byte* DDFField::GetBinaryData(const DDFSubfieldDefining *&subfieldDef, const ulong& fieldIdx, size_t *byteLeft) const noexcept {
-    size_t consumedBytes = 0ull;
-    size_t offset = 0ull;
+const byte* DDFField::GetBinaryData(const DDFSubfieldDefining *&subfieldDef, const ulong &fieldIdx, size_t *byteLeft) const noexcept {
+    size_t consumedBytes = 0ul;
+    size_t offset = 0ul;
     
     if (fieldIdx && fieldDefining->GetFixedWidth()) {
         offset = fieldDefining->GetFixedWidth() * fieldIdx;
     }
     
-    for (auto idx = 0ul; fieldDefining->GetSubfieldCount(); idx++) {
-        auto&& subfield = fieldDefining->GetSubfieldDefining(idx);
+    const auto &&fieldDefiningCount = fieldDefining->GetSubfieldCount();
+    
+    for (auto idx = 0ul; idx < fieldDefiningCount; ++idx) {
+        auto &&subfield = fieldDefining->GetSubfieldDefining(idx);
         
         if (subfield == subfieldDef) {
             if (byteLeft) {
